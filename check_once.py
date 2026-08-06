@@ -12,6 +12,7 @@ import requests
 
 from config import BOT_TOKEN, CHAT_ID, validate_bot_config
 from models.tour import Tour
+from services.links import travelata_search_url
 from services.price_watcher import CheckResult, PriceWatcher
 
 
@@ -38,7 +39,18 @@ def _send_telegram_message(result: CheckResult) -> None:
     text = _format_alert(tour, previous)
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={"chat_id": CHAT_ID, "text": text},
+        json={
+            "chat_id": CHAT_ID,
+            "text": text,
+            "reply_markup": {
+                "inline_keyboard": [[
+                    {
+                        "text": "🌴 Открыть поиск на Travelata",
+                        "url": travelata_search_url(tour),
+                    }
+                ]]
+            },
+        },
         timeout=30,
     )
     response.raise_for_status()

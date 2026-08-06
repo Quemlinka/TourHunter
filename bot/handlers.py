@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.buttons import main_menu
+from models.tour import Tour
+from services.links import travelata_search_url
 from services.price_watcher import CheckResult, PriceWatcher
 from tour_config import (
     ADULTS,
@@ -40,7 +42,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception:
             logger.exception("Manual price check failed")
             text = "❌ Не удалось получить туры. Попробуйте ещё раз немного позже."
-        await query.edit_message_text(text, reply_markup=main_menu())
+        await query.edit_message_text(
+            text,
+            reply_markup=_tour_actions(result.tour) if 'result' in locals() else main_menu(),
+        )
     elif query.data == "settings":
         await query.edit_message_text(_settings_text(), reply_markup=main_menu())
     elif query.data == "status":
@@ -59,6 +64,7 @@ async def monitor_prices(context: ContextTypes.DEFAULT_TYPE) -> None:
         await context.bot.send_message(
             chat_id=context.application.bot_data["chat_id"],
             text=_tour_text(result.tour, result.previous_tour, title="🔥 Найден более выгодный тур"),
+            reply_markup=_tour_actions(result.tour),
         )
     except Exception:
         logger.exception("Scheduled price check failed")
@@ -101,3 +107,13 @@ def _tour_text(tour, previous, title: str) -> str:
 
 def _money(value: int) -> str:
     return f"{value:,} ₽".replace(",", " ")
+
+
+def _tour_actions(tour: Tour | None) -> InlineKeyboardMarkup:
+    rows = []
+    if tour is not None:
+        rows.append(
+            [InlineKeyboardButton("🌴 Открыть поиск на Travelata", url=travelata_search_url(tour))]
+        )
+    rows.extend(main_menu().inline_keyboard)
+    return InlineKeyboardMarkup(rows)
