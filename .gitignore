@@ -1,4 +1,4 @@
 .env
 __pycache__/
 *.py[cod]
-data/last_tour.json
+
