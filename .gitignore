@@ -1,20 +1,4 @@
-# Виртуальное окружение
-venv/
-
-# Переменные окружения
 .env
-
-# Кэш Python
 __pycache__/
-**/__pycache__/
-
-*.pyc
-
-# Логи
-logs/
-
-# Базы данных
-*.db
-
-# VS Code
-.vscode/
+*.py[cod]
+data/last_tour.json
