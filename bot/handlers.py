@@ -8,8 +8,8 @@ from telegram.ext import ContextTypes
 
 from bot.buttons import main_menu
 from models.tour import Tour
-from services.links import tour_search_url, tour_source_label
-from services.price_watcher import CheckResult, PriceWatcher
+from services.links import travelata_search_url
+from services.price_watcher import PriceWatcher
 from tour_config import (
     ADULTS,
     CHECK_INTERVAL_SECONDS,
@@ -25,96 +25,236 @@ logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message:
-        await update.message.reply_text(_welcome_text(), reply_markup=main_menu())
-
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    if query is None:
-        return
-    await query.answer()
-
-    if query.data == "check":
-        await query.edit_message_text("🔎 Проверяю варианты. Это может занять около минуты…")
-        try:
-            result = await asyncio.to_thread(PriceWatcher().check_prices)
-            text = _tour_text(result.tour, result.previous_tour, title="🔎 Результат поиска")
-        except Exception:
-            logger.exception("Manual price check failed")
-            text = "❌ Не удалось получить туры. Попробуйте ещё раз немного позже."
-        await query.edit_message_text(
-            text,
-            reply_markup=_tour_actions(result.tour) if 'result' in locals() else main_menu(),
-        )
-    elif query.data == "settings":
-        await query.edit_message_text(_settings_text(), reply_markup=main_menu())
-    elif query.data == "status":
-        await query.edit_message_text(
-            f"🟢 TourHunter работает.\n\nАвтоматическая проверка: каждые {CHECK_INTERVAL_SECONDS // 60} мин.",
+        await update.message.reply_text(
+            _welcome_text(),
             reply_markup=main_menu(),
         )
 
 
-async def monitor_prices(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """JobQueue task: send a notification only for a new attractive offer."""
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+    query = update.callback_query
+
+    if query is None:
+        return
+
+    await query.answer()
+
+    if query.data == "check":
+
+        await query.edit_message_text(
+            "🔎 Ищу самые дешёвые туры...\nЭто может занять около минуты."
+        )
+
+        try:
+
+            result = await asyncio.to_thread(
+                PriceWatcher().check_prices
+            )
+
+            text = _tour_text(
+                result.tour,
+                result.previous_tour,
+                "🔎 Лучший найденный тур",
+            )
+
+            markup = (
+                _tour_actions(result.tour)
+                if result.tour
+                else main_menu()
+            )
+
+        except Exception:
+
+            logger.exception("Ошибка ручной проверки")
+
+            text = (
+                "❌ Не удалось получить данные "
+                "от Travelata."
+            )
+
+            markup = main_menu()
+
+        await query.edit_message_text(
+            text,
+            reply_markup=markup,
+        )
+
+        return
+
+    if query.data == "settings":
+
+        await query.edit_message_text(
+            _settings_text(),
+            reply_markup=main_menu(),
+        )
+
+        return
+
+    if query.data == "status":
+
+        await query.edit_message_text(
+            (
+                "🟢 TourHunter работает\n\n"
+                f"Проверка каждые "
+                f"{CHECK_INTERVAL_SECONDS // 60} минут."
+            ),
+            reply_markup=main_menu(),
+        )
+
+
+async def monitor_prices(
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+
+    logger.info("=" * 60)
+    logger.info("Автоматическая проверка")
+
     try:
-        result = await asyncio.to_thread(PriceWatcher().check_prices)
-        if not result.tour or not result.should_notify:
-            return
+
+        result = await asyncio.to_thread(
+            PriceWatcher().check_prices
+        )
+
+    except Exception:
+
+        logger.exception(
+            "Ошибка проверки цен"
+        )
+
+        return
+
+    if result.tour is None:
+
+        logger.info(
+            "Туры не найдены"
+        )
+
+        return
+
+    if not result.should_notify:
+
+        logger.info(
+            "Уведомление не требуется"
+        )
+
+        return
+
+    logger.info(
+        "Отправляю уведомление..."
+    )
+
+    try:
+
         await context.bot.send_message(
             chat_id=context.application.bot_data["chat_id"],
-            text=_tour_text(result.tour, result.previous_tour, title="🔥 Найден более выгодный тур"),
-            reply_markup=_tour_actions(result.tour),
+            text=_tour_text(
+                result.tour,
+                result.previous_tour,
+                "🔥 Найден более выгодный тур",
+            ),
+            reply_markup=_tour_actions(
+                result.tour
+            ),
         )
+
+        logger.info(
+            "Сообщение успешно отправлено"
+        )
+
     except Exception:
-        logger.exception("Scheduled price check failed")
+
+        logger.exception(
+            "Ошибка отправки Telegram"
+        )
 
 
 def _welcome_text() -> str:
-    return "🔥 TourHunter\n\n" + _settings_text() + "\n\n🟢 Бот работает"
 
-
-def _settings_text() -> str:
     return (
-        "⚙️ Настройки поиска\n\n"
-        "✈️ Москва → Нячанг\n"
-        f"📅 Период: {DATE_FROM} — {DATE_TO}\n"
-        f"👤 Туристов: {ADULTS}\n"
-        f"🌙 Ночей: {NIGHTS_FROM}–{NIGHTS_TO}\n"
-        f"🎯 Уведомлять до: {_money(PRICE_LIMIT)}"
+        "🔥 TourHunter\n\n"
+        + _settings_text()
+        + "\n\n🟢 Бот запущен"
     )
 
 
-def _tour_text(tour, previous, title: str) -> str:
+def _settings_text() -> str:
+
+    return (
+        "⚙ Настройки\n\n"
+        "✈ Москва → Нячанг\n"
+        f"📅 {DATE_FROM} — {DATE_TO}\n"
+        f"👤 Туристов: {ADULTS}\n"
+        f"🌙 Ночей: {NIGHTS_FROM}-{NIGHTS_TO}\n"
+        f"💰 Лимит: {_money(PRICE_LIMIT)}"
+    )
+
+
+def _tour_text(
+    tour,
+    previous,
+    title,
+) -> str:
+
     if tour is None:
-        return "❌ Подходящих туров по заданным параметрам не найдено."
+
+        return (
+            "❌ Подходящих туров "
+            "не найдено."
+        )
+
     change = ""
-    if previous and tour.price != previous.price:
-        difference = previous.price - tour.price
-        direction = "дешевле" if difference > 0 else "дороже"
-        change = f"\n📈 Изменение: {_money(abs(difference))} {direction}"
-    room = f"\n🛏 Номер: {tour.room}" if tour.room else ""
-    transfer = f"\n🚐 Трансфер: {tour.transfer}" if tour.transfer else ""
+
+    if previous:
+
+        delta = previous.price - tour.price
+
+        if delta > 0:
+
+            change = (
+                f"\n📉 Цена снизилась "
+                f"на {_money(delta)}"
+            )
+
+        elif delta < 0:
+
+            change = (
+                f"\n📈 Цена выросла "
+                f"на {_money(-delta)}"
+            )
+
     return (
         f"{title}\n\n"
-        "✈️ Москва → Нячанг\n"
-        f"🏷 Источник: {tour_source_label(tour)}\n"
+        "✈ Москва → Нячанг\n\n"
         f"📅 Вылет: {tour.checkin_date}\n"
         f"🌙 Ночей: {tour.tour_nights}\n"
         f"💰 Цена: {_money(tour.price)}"
-        f"{change}{room}{transfer}"
+        f"{change}"
     )
 
 
 def _money(value: int) -> str:
+
     return f"{value:,} ₽".replace(",", " ")
 
 
-def _tour_actions(tour: Tour | None) -> InlineKeyboardMarkup:
+def _tour_actions(
+    tour: Tour | None,
+) -> InlineKeyboardMarkup:
+
     rows = []
-    if tour is not None:
-        rows.append(
-            [InlineKeyboardButton(f"🌴 Открыть на {tour_source_label(tour)}", url=tour_search_url(tour))]
-        )
-    rows.extend(main_menu().inline_keyboard)
+
+    if tour:
+
+        rows.append([
+            InlineKeyboardButton(
+                "🌴 Открыть в Travelata",
+                url=travelata_search_url(tour),
+            )
+        ])
+
+    rows.extend(
+        main_menu().inline_keyboard
+    )
+
     return InlineKeyboardMarkup(rows)

@@ -18,22 +18,13 @@ class Tour:
     operator: int | None
     room: str | None = None
     transfer: str | None = None
-    source: str = "Travelata"
-    url: str | None = None
 
     @property
     def identity(self) -> str:
         """Stable enough to suppress repeated notifications for one offer."""
         return self.id or ":".join(
             str(value)
-            for value in (
-                self.source,
-                self.checkin_date,
-                self.tour_nights,
-                self.hotel,
-                self.operator,
-                self.room,
-            )
+            for value in (self.checkin_date, self.tour_nights, self.hotel, self.operator, self.room)
         )
 
     @classmethod
@@ -50,7 +41,6 @@ class Tour:
             operator=_as_int(item.get("operator")),
             room=_as_text(item.get("room")),
             transfer=_as_text(item.get("transfer")),
-            source="Travelata",
         )
 
 

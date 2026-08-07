@@ -7,9 +7,8 @@ Telegram bot that searches Travelata offers and monitors the lowest configured p
 1. Copy `.env.example` to `.env` and set `BOT_TOKEN` and `CHAT_ID`.
 2. Adjust dates, travellers, nights and alert budget in `tour_config.py`.
 3. Install dependencies: `python -m pip install -r requirements.txt`.
-4. Install the browser used for Coral Travel: `python -m playwright install chromium`.
-5. Run: `python main.py`.
+4. Run: `python main.py`.
 
-The first scheduled check saves a baseline and does not notify. Later checks compare Travelata and Coral Travel, then notify only when a cheaper offer (or a new equally cheap offer) is found within `PRICE_LIMIT`.
+The first scheduled check saves a baseline and does not notify. Later checks notify only when a cheaper offer (or a new equally cheap offer) is found within `PRICE_LIMIT`.
 
 `data/last_tour.json` is generated automatically and must not be edited by hand.

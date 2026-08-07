@@ -25,9 +25,6 @@ jobs:
       - name: Install libraries
         run: python -m pip install -r requirements.txt
 
-      - name: Install Chromium for Coral Travel
-        run: python -m playwright install --with-deps chromium
-
       - name: Check the price and notify Telegram
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
