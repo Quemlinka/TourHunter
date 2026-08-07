@@ -12,7 +12,7 @@ import requests
 
 from config import BOT_TOKEN, CHAT_ID, validate_bot_config
 from models.tour import Tour
-from services.links import travelata_search_url
+from services.links import tour_search_url, tour_source_label
 from services.price_watcher import CheckResult, PriceWatcher
 
 
@@ -45,8 +45,8 @@ def _send_telegram_message(result: CheckResult) -> None:
             "reply_markup": {
                 "inline_keyboard": [[
                     {
-                        "text": "🌴 Открыть поиск на Travelata",
-                        "url": travelata_search_url(tour),
+                        "text": f"🌴 Открыть на {tour_source_label(tour)}",
+                        "url": tour_search_url(tour),
                     }
                 ]]
             },
@@ -68,6 +68,7 @@ def _format_alert(tour: Tour, previous: Tour | None) -> str:
     return (
         "🔥 Найден более выгодный тур!\n\n"
         "✈️ Москва → Нячанг\n"
+        f"🏷 Источник: {tour_source_label(tour)}\n"
         f"📅 Вылет: {tour.checkin_date}\n"
         f"🌙 Ночей: {tour.tour_nights}\n"
         f"💰 Цена: {_money(tour.price)}"

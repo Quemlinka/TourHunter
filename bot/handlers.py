@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 
 from bot.buttons import main_menu
 from models.tour import Tour
-from services.links import travelata_search_url
+from services.links import tour_search_url, tour_source_label
 from services.price_watcher import CheckResult, PriceWatcher
 from tour_config import (
     ADULTS,
@@ -98,6 +98,7 @@ def _tour_text(tour, previous, title: str) -> str:
     return (
         f"{title}\n\n"
         "✈️ Москва → Нячанг\n"
+        f"🏷 Источник: {tour_source_label(tour)}\n"
         f"📅 Вылет: {tour.checkin_date}\n"
         f"🌙 Ночей: {tour.tour_nights}\n"
         f"💰 Цена: {_money(tour.price)}"
@@ -113,7 +114,7 @@ def _tour_actions(tour: Tour | None) -> InlineKeyboardMarkup:
     rows = []
     if tour is not None:
         rows.append(
-            [InlineKeyboardButton("🌴 Открыть поиск на Travelata", url=travelata_search_url(tour))]
+            [InlineKeyboardButton(f"🌴 Открыть на {tour_source_label(tour)}", url=tour_search_url(tour))]
         )
     rows.extend(main_menu().inline_keyboard)
     return InlineKeyboardMarkup(rows)

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from typing import Protocol
 
 from models.tour import Tour
+from parsers.coral_travel import CoralTravel
 from parsers.travelata_api import TravelataAPI
 from services.storage import TourStorage
 from tour_config import PRICE_LIMIT
@@ -15,14 +18,39 @@ class CheckResult:
     previous_tour: Tour | None
 
 
+logger = logging.getLogger(__name__)
+
+
+class TourSource(Protocol):
+    def get_best_tour(self) -> Tour | None: ...
+
+
 class PriceWatcher:
-    def __init__(self, api: TravelataAPI | None = None, storage: TourStorage | None = None) -> None:
-        self.api = api or TravelataAPI()
+    def __init__(
+        self,
+        api: TravelataAPI | None = None,
+        storage: TourStorage | None = None,
+        sources: tuple[TourSource, ...] | None = None,
+    ) -> None:
+        # ``api`` is retained for compatibility with the earlier one-source setup.
+        self.sources = sources or (api or TravelataAPI(), CoralTravel())
         self.storage = storage or TourStorage()
 
     def check_prices(self) -> CheckResult:
         previous = self.storage.load()
-        current = self.api.get_best_tour()
+        candidates: list[Tour] = []
+        for source in self.sources:
+            try:
+                candidate = source.get_best_tour()
+            except Exception:
+                # A temporary failure of one supplier must not stop alerts from
+                # the other supplier.
+                logger.exception("Tour source %s failed", type(source).__name__)
+                continue
+            if candidate is not None:
+                candidates.append(candidate)
+
+        current = min(candidates, key=lambda tour: tour.price, default=None)
         if current is None:
             return CheckResult(tour=None, should_notify=False, previous_tour=previous)
 
