@@ -1,12 +1,14 @@
 {
-  "id": "sVHelbi9iU4Wjv5DPjeKmT+BhPXgg5VkCPHvZ5E0of3C34BLynE7OpWyLFyyIJIU6aFdhpqowk4gRngAA7DHtE+/d/yZnHKUYMME2ab9UHk6Y3lAbhWQu1s2EtR4cA==",
-  "price": 63018,
-  "checkin_date": "2026-09-02",
-  "tour_nights": 8,
-  "hotel_nights": 7,
-  "hotel": 132145,
+  "id": "sVHelbi9iU4XjPlDPjeKmTaVk/Dml4JmHeH/dYMmpPbG04JLynE7OpWyLF2jK4Qc9LdeiZDCvk1fP3uG2yUgR6My6h4IetqURDNlj8GYPhRZOQ==",
+  "price": 69176,
+  "checkin_date": "2026-08-25",
+  "tour_nights": 17,
+  "hotel_nights": 16,
+  "hotel": 69587,
   "resort": 417,
   "operator": 46,
-  "room": "SUPERIOR TWIN NO VIEW",
-  "transfer": "group"
+  "room": "STANDARD",
+  "transfer": "group",
+  "source": "Travelata",
+  "url": null
 }
